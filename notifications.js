@@ -9,10 +9,8 @@
  */
 
 // NPM imports
+import events from '@ouroboros/events';
 import * as Notifications from 'expo-notifications';
-
-// Repo imports
-import events from '../generic/events';
 
 // Init handler
 Notifications.setNotificationHandler({

@@ -9,8 +9,8 @@
  */
 
 // NPM imports
-import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 // Global data
 let _conf = {
@@ -117,76 +117,47 @@ function errorMessage(error) {
  *								errors: optional object of error codes to messages
  *								success: optional callback for after successful requests
  *								use_session: optional flag to allow for never using sessions
- * @return Promise
+ * @return void
  */
 function init(domain, opts={}) {
 
-	// Return new Promise
-	return new Promise((resolve, reject) => {
+	// Store the domains
+	_conf.domain = domain + '/';
 
-		// Store the domains
-		_conf.domain = domain + '/';
+	// Store error codes/messages
+	if('errors' in opts) {
+		_conf.errors = opts.errors;
+	}
 
-		// Store error codes/messages
-		if('errors' in opts) {
-			_conf.errors = opts.errors;
-		}
-
-		// Store callbacks
-		if('error' in opts) {
-			if(typeof opts['error'] === 'function') {
-				_conf.error = opts['error'];
-			} else {
-				console.error('Rest.init \'error\' param must be a function');
-			}
-		}
-		if('before' in opts) {
-			if(typeof opts['before'] === 'function') {
-				_conf.before = opts['before'];
-			} else {
-				console.error('Rest.init \'before\' param must be a function');
-			}
-		}
-		if('after' in opts) {
-			if(typeof opts['after'] === 'function') {
-				_conf.after = opts['after'];
-			} else {
-				console.error('Rest.init \'after\' param must be a function');
-			}
-		}
-		if('success' in opts) {
-			if(typeof opts['success'] === 'function') {
-				_conf.success = opts['success'];
-			} else {
-				console.error('Rest.init \'success\' param must be a function');
-			}
-		}
-
-		// Check for use_session flag
-		if(!('use_session' in opts)) {
-			opts['use_session'] = true;
-		}
-
-		// If we are using sessions
-		if(opts['use_session']) {
-
-			// If we don't already have it
-			if(!_conf.session) {
-
-				// Is it in storage?
-				AsyncStorage.getItem('_session').then(_session => {
-					if(_session) {
-						this.session(_session);
-					}
-					resolve();
-				});
-			} else {
-				resolve();
-			}
+	// Store callbacks
+	if('error' in opts) {
+		if(typeof opts['error'] === 'function') {
+			_conf.error = opts['error'];
 		} else {
-			resolve();
+			console.error('Rest.init \'error\' param must be a function');
 		}
-	});
+	}
+	if('before' in opts) {
+		if(typeof opts['before'] === 'function') {
+			_conf.before = opts['before'];
+		} else {
+			console.error('Rest.init \'before\' param must be a function');
+		}
+	}
+	if('after' in opts) {
+		if(typeof opts['after'] === 'function') {
+			_conf.after = opts['after'];
+		} else {
+			console.error('Rest.init \'after\' param must be a function');
+		}
+	}
+	if('success' in opts) {
+		if(typeof opts['success'] === 'function') {
+			_conf.success = opts['success'];
+		} else {
+			console.error('Rest.init \'success\' param must be a function');
+		}
+	}
 }
 
 /**

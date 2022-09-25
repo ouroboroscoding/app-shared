@@ -9,7 +9,14 @@
  */
 
 // NPM imports
+import { clone } from '@ouroboros/tools';
 import { Platform } from "react-native";
+
+/**
+ * Navigator
+ *
+ * Contains all details and
+ */
 
 // Init the callback and screens lists
 const __callbacks = [];
@@ -50,6 +57,22 @@ function _back() {
 
 	// Return OK
 	return true;
+}
+
+/**
+ * Current
+ *
+ * Returns the name and details of the current screen
+ *
+ * @name _current
+ * @access private
+ * @returns Object
+ */
+function _current() {
+
+	// Return null if there's no current screen, else return the last screen set
+	return __screens.length === 0 ? null :
+			clone(__screens[__screens.length-1]);
 }
 
 /**
@@ -163,6 +186,7 @@ function _unsubscribe(callback) {
 // Default export
 const navigator = {
 	back: _back,
+	current: _current,
 	limit: _limit,
 	set: _set,
 	subscribe: _subscribe,
