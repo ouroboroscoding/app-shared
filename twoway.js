@@ -11,17 +11,23 @@
 
 // NPM imports
 import events from '@ouroboros/events';
-import { empty } from '@ouroboros/tools';
+import { empty, omap } from '@ouroboros/tools';
 
 // Local imports
 import rest from './rest.js';
 import wshelper from './wshelper.js';
+
+// Set to true to output debug info
+const __debug = false;
 
 // The ping timer
 let __ping = null;
 
 // The valid close flag
 let __close = true;
+
+// The cookie string
+let __cookie = '';
 
 // The websocket
 let __socket = null;
@@ -59,6 +65,10 @@ let __services = {};
  */
 function _addTrack(service, key, callback) {
 
+	if(__debug) {
+		console.log(`_addTrack(${service}, ${key})`);
+	}
+
 	// If we don't have the service, add it
 	if(!(service in __services)) {
 		__services[service] = {}
@@ -87,6 +97,10 @@ function _addTrack(service, key, callback) {
  * @returns {void}
  */
 function _handleClose() {
+
+	if(__debug) {
+		console.log(`_handleClose()`);
+	}
 
 	// If we have a ping interval
 	if(__ping) {
@@ -119,27 +133,12 @@ function _handleClose() {
  */
 function _handleMessage(sock, ev) {
 
-	function stupidBlobs(msg) {
-
-		// If we got an error
-		if(msg.error) {
-			events.trigger('error', 'twoway: Websocket failed: ' + msg.error.msg + ' (' + msg.error.code + ')');
-			return;
-		}
-
-		// If we have the service
-		if(msg.service in __services) {
-
-			// If we have the key
-			if(msg.key in __services[msg.service]) {
-
-				// Call each callback
-				for(let f of __services[msg.service][msg.key]) {
-					f(msg.data);
-				}
-			}
-		}
+	if(__debug) {
+		console.log(`_handleMessage(sock, ${ev.data})`);
 	}
+
+	// Init the message
+	let oMsg;
 
 	// If we got a string back
 	if(typeof ev.data === 'string') {
@@ -157,24 +156,32 @@ function _handleMessage(sock, ev) {
 			return;
 		}
 
-		// Convert it to JSON
-		stupidBlobs(JSON.parse(ev.data));
+		// Decode it from JSON
+		oMsg = JSON.parse(ev.data);
 	}
 
-	// Else we got a blob
+	// Else we got bad data
 	else {
+		events.trigger('error', 'twoway: websocket failed, got unknown data: ' + typeof ev.data);
+	}
 
-		// Screw you javascript
-		let r = new FileReader();
-		r.addEventListener('loadend', function() {
+	// If we got an error
+	if(oMsg.error) {
+		events.trigger('error', 'twoway: Websocket failed: ' + oMsg.error.msg + ' (' + oMsg.error.code + ')');
+		return;
+	}
 
-			// Parse the data
-			let oMsg = JSON.parse(r.result);
+	// If we have the service
+	if(oMsg.service in __services) {
 
-			// Handle it
-			stupidBlobs(oMsg);
-		});
-		r.readAsText(ev.data);
+		// If we have the key
+		if(oMsg.key in __services[oMsg.service]) {
+
+			// Call each callback
+			for(let f of __services[oMsg.service][oMsg.key]) {
+				f(oMsg.data);
+			}
+		}
 	}
 }
 
@@ -194,8 +201,13 @@ function _openSocket() {
 	// Notify the backend of a new ws connection
 	rest.read('webpoll', 'websocket', {}).then(res => {
 
+		if(__debug) {
+			console.log(`   response: ${JSON.stringify(res)}`);
+		}
+
 		// Create the websocket
 		__socket = wshelper(__url, {
+			headers: {cookie: __cookie},
 			open: function(sock) {
 
 				// Init the message list
@@ -223,7 +235,7 @@ function _openSocket() {
 			},
 			message: _handleMessage,
 			close: _handleClose
-		});
+		}, true);
 
 		// If we got false
 		if(__socket === false) {
@@ -249,10 +261,33 @@ function _openSocket() {
  */
 function _ping() {
 
+	if(__debug) {
+		console.log(`_ping()`);
+	}
+
 	// Send a ping message over the socket to keep it alive
 	__socket.send(JSON.stringify({
 		_type: 'ping'
 	}));
+}
+
+/**
+ * Cookies
+ *
+ * Sets the cookie values to be sent with websocket requests
+ *
+ * @name cookies
+ * @access public
+ * @param {Object} o Name value pairs to be turned into a cookie string
+ * @returns {void}
+ */
+export function cookies(o) {
+
+	// Go through each object and create a string, then combine them all, and
+	//	save them to the module var
+	__cookie = omap(o, (v, k) => {
+		return `${k}=${encodeURIComponent(v)}`;
+	}).join('; ');
 }
 
 /**
@@ -266,6 +301,11 @@ function _ping() {
  * @returns {void}
  */
 export function init(url) {
+
+	if(__debug) {
+		console.log(`init(${url})`);
+	}
+
 	__url = url;
 }
 
@@ -284,6 +324,10 @@ export function init(url) {
  * @returns {void}
  */
 export function track(service, key, callback) {
+
+	if(__debug) {
+		console.log(`track(${service}, ${key})`);
+	}
 
 	// Add the tracking callback
 	_addTrack(service, key, callback);
@@ -330,6 +374,10 @@ export function track(service, key, callback) {
  * @return {boolean}
  */
 export function untrack(service, key, callback) {
+
+	if(__debug) {
+		console.log(`untrack(${service}, ${key})`);
+	}
 
 	// If we have the service
 	if(service in __services) {
@@ -400,5 +448,5 @@ export function untrack(service, key, callback) {
 }
 
 // Default export
-const twoway = { init, track, untrack };
+const twoway = { cookies, init, track, untrack };
 export default twoway;

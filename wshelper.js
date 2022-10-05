@@ -24,7 +24,12 @@ export default function wshelper(url, conf={}, debug=false) {
 	}
 
 	// Create the WebSocket
-	let oSock = new WebSocket(url);
+	let oSock;
+	if('headers' in conf) {
+		oSock = new WebSocket(url, null, {headers: conf['headers']});
+	} else {
+		oSock = new WebSocket(url);
+	}
 
 	// Set the open callback
 	oSock.onopen = () => {
@@ -36,7 +41,7 @@ export default function wshelper(url, conf={}, debug=false) {
 
 		// Else, just log the event
 		else if(debug) {
-			console.log('websocket: opened');
+			console.log('websocket: opened()');
 		}
 	}
 
@@ -50,7 +55,7 @@ export default function wshelper(url, conf={}, debug=false) {
 
 		// Else, just log the event
 		else if(debug) {
-			console.log('websocket: message received, "' + ev.data + '"');
+			console.log(`websocket: message(${JSON.stringify(ev.data)})`);
 		}
 	}
 
@@ -64,12 +69,12 @@ export default function wshelper(url, conf={}, debug=false) {
 
 		// Else, just log the event
 		else if(debug) {
-			console.log('websocket: error, "' + JSON.stringify(ev) + '"');
+			console.log(`websocket: error(${JSON.stringify(ev)})`);
 		}
 	}
 
 	// Set the close callback
-	oSock.onclose = () => {
+	oSock.onclose = ev => {
 
 		// If a close callback is set
 		if('close' in conf) {
@@ -78,7 +83,7 @@ export default function wshelper(url, conf={}, debug=false) {
 
 		// Else, just log the event
 		else if(debug) {
-			console.log('websocket: closed');
+			console.log(`websocket: closed(${JSON.stringify(ev)})`);
 		}
 	}
 
